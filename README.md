@@ -116,12 +116,12 @@ cd budget-calendar
 
 - Use **NSSM** to run Flask as a service. Install [NSSM](https://nssm.cc/), then configure the service:
    - **Application Path**: `C:\Users\espey\AppData\Local\Programs\Python\Python39\python.exe`
-   - **Startup Directory**: `C:\Projects\budget-calendar\`
-   - **Arguments**: `C:\Projects\budget-calendar\app.py`
+   - **Startup Directory**: `C:\Projects\GitHub\BudgetCalendar\`
+   - **Arguments**: `C:\Projects\GitHub\BudgetCalendar\app.py`
    - **Log on Tab**: Set to Local System account
    - (Optional) **I/O Tab for logs**:
-      - Output (stdout): `C:\Projects\budget-calendar\logs\flask_stdout.log`
-      - Error (stderr): `C:\Projects\budget-calendar\logs\flask_stderr.log`
+      - Output (stdout): `C:\Projects\BudgetCalendar\logs\flask_stdout.log`
+      - Error (stderr): `C:\Projects\BudgetCalendar\logs\flask_stderr.log`
    - To start the service:
 
      ```bash
