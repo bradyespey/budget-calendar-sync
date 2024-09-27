@@ -1,6 +1,6 @@
 // Calendar IDs and Configuration
-var balanceCalendarId = "balance_calendar_id@group.calendar.google.com";
-var billsCalendarId = "bills_calendar_id@group.calendar.google.com";
+var balanceCalendarId = "92fd26087e4819453f81a6b5fff56631d7c9413387272e3ed98f59ccd039e3b7@group.calendar.google.com";
+var billsCalendarId = "81e31be34e3d2ba949e31387844fdc00012bd77ae7db508154d3d047beef0c44@group.calendar.google.com";
 var daysToProjectAndClear = 120;
 
 // List of Federal Holidays (2024 and 2025)
@@ -93,7 +93,7 @@ function clearEventsFromDate(calendar, startDate, endDate) {
 
 // Update Balance from API
 function updateBalanceFromAPI() {
-    var url = "https://your-domain.com/budgetcalendar/get-balance/";
+    var url = "https://theespeys.com/budgetcalendar/get-balance/";
     var response = UrlFetchApp.fetch(url, {method: 'get', muteHttpExceptions: true});
 
     if (response.getResponseCode() === 200) {
