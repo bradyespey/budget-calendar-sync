@@ -93,11 +93,22 @@ cd budget-calendar
 ### 4. Set Up Google Apps Script (GAS)
 
 1. In the `/google_apps_scripts/` directory, you'll find `.js` files. Copy these into your Google Sheets Script Editor.
-2. Set up the necessary triggers:
-   - **Clear Manual Values.gs**: Runs daily to clear manual balance overrides.
-   - **Accounts Refresh.gs**: Runs daily to refresh Monarch Money account balances.
-   - **Budget Script.gs**: Main function that updates balances and projects events in Google Calendar.
-   - **Custom Menu Function.gs**: Creates custom menu options in Google Sheets for manual budget updates.
+2. Set up the necessary triggers for automation (optional but recommended):
+   - **Clear Manual Values.gs**  
+     - **Purpose**: Clears any manually entered balance overrides.  
+     - **Recommended Trigger**: Daily, between 6 AM and 7 AM.
+  
+   - **Accounts Refresh.gs**  
+     - **Purpose**: Refreshes Monarch Money account balances to ensure the latest data is used for balance projections.  
+     - **Recommended Trigger**: Daily, between 7 AM and 8 AM.
+
+   - **Budget Script.gs**  
+     - **Purpose**: Main function that retrieves balances, clears old calendar events, projects future balances, and updates Google Sheets.  
+     - **Recommended Trigger**: Daily, between 8 AM and 9 AM.
+
+   - **Custom Menu Function.gs**  
+     - **Purpose**: Populates custom menu options in Google Sheets for manually running updates or clearing data.  
+     - **Recommended Trigger**: On **spreadsheet open** to ensure the menu is available when the sheet is accessed.
 
 ### 5. Set Up Flask App
 
