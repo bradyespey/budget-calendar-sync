@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -158,3 +159,6 @@ chrome_profile/
 
 # Ignore git backup files
 .git_backup
+
+# Ignore local test credentialls
+credentials.json
