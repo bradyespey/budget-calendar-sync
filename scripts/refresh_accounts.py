@@ -5,18 +5,15 @@ import time
 import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()
-
-# ======= TOGGLE OPTIONS =======
-headless_mode = True  # Set to False if you want to see the browser window during local testing
-# =============================
 
 # Setup Logging
 logging.basicConfig(
@@ -32,31 +29,30 @@ def load_credentials():
         raise ValueError("Environment variables MONARCH_EMAIL and MONARCH_PASSWORD must be set.")
     return email, password
 
+# Selenium-based function to refresh Monarch accounts
 def refresh_accounts():
     email, password = load_credentials()
+    driver = None  # Initialize driver variable
 
     options = webdriver.ChromeOptions()
-    if headless_mode:
-        options.add_argument("--headless")
+    options.add_argument("--headless")  # Run in headless mode for Heroku
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")  # Optional: Define window size
+    options.add_argument("--disable-logging")
+    options.add_argument("--log-level=3")
 
-    # Determine if running on Heroku
-    is_heroku = os.environ.get("DYNO") is not None
+    # Set binary location from Heroku's environment variable
+    chrome_bin = os.environ.get("GOOGLE_CHROME_BIN", "/app/.apt/usr/bin/google-chrome")
+    options.binary_location = chrome_bin
 
     try:
-        if is_heroku:
-            # Heroku uses an ephemeral filesystem; cache webdriver in /tmp
-            driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager(cache_valid_range=1, path="/tmp/.wdm").install()),
-                options=options
-            )
-        else:
-            # Local environment
-            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
+        # Initialize WebDriver using webdriver-manager
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()),
+            options=options
+        )
         logging.info("ChromeDriver initialized successfully.")
 
         # Step 1: Navigate to the Monarch login page
@@ -92,12 +88,11 @@ def refresh_accounts():
         )
         refresh_button.click()
         logging.info("Clicked the 'Refresh all' button.")
-
+        
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
+        logging.error(f"An error occurred during account refresh: {e}", exc_info=True)
+        raise e  # Re-raise exception to be caught in app.py
     finally:
-        driver.quit()
-        logging.info("ChromeDriver session ended.")
-
-if __name__ == "__main__":
-    refresh_accounts()
+        if driver:
+            driver.quit()
+            logging.info("ChromeDriver session ended.")

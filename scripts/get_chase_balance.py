@@ -15,6 +15,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
+# Function to load credentials from environment variables
 def load_credentials():
     email = os.getenv("MONARCH_EMAIL")
     password = os.getenv("MONARCH_PASSWORD")
@@ -24,6 +25,7 @@ def load_credentials():
     return email, password
 
 async def get_chase_balance():
+    # Load credentials from environment variables
     email, password = load_credentials()
 
     class MonarchMoneyClient:
@@ -46,7 +48,6 @@ async def get_chase_balance():
                         logging.info("Login successful!")
                     else:
                         logging.error(f"Login failed with status {response.status}")
-                        self.token = None
 
         async def fetch_account_data(self):
             async with aiohttp.ClientSession(headers=self.headers) as session:
@@ -92,6 +93,8 @@ async def get_chase_balance():
         if account_summaries:
             return client.get_joint_checking_balance(account_summaries)
         else:
+            logging.error("No account summaries retrieved.")
             return None
     else:
+        logging.error("Authentication token not obtained.")
         return None
