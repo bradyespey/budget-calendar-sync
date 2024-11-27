@@ -9,7 +9,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 
 # Load environment variables from .env
@@ -35,7 +34,7 @@ def refresh_accounts():
     driver = None  # Initialize driver variable
 
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")  # Run in headless mode for Heroku
+    options.add_argument("--headless")  # Run in headless mode
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -44,15 +43,13 @@ def refresh_accounts():
     options.add_argument("--log-level=3")
 
     # Set binary location from Heroku's environment variable
-    chrome_bin = os.environ.get("GOOGLE_CHROME_BIN", "/app/.apt/usr/bin/google-chrome")
+    chrome_bin = "/app/.chrome-for-testing/chrome-linux64/chrome"
     options.binary_location = chrome_bin
 
     try:
-        # Initialize WebDriver using webdriver-manager
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()),
-            options=options
-        )
+        # Initialize WebDriver using the new chromedriver path
+        service = Service("/app/.chrome-for-testing/chromedriver-linux64/chromedriver")
+        driver = webdriver.Chrome(service=service, options=options)
         logging.info("ChromeDriver initialized successfully.")
 
         # Step 1: Navigate to the Monarch login page

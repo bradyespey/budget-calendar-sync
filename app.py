@@ -46,6 +46,8 @@ def refresh_accounts_route():
         logging.error(f"Exception occurred in refresh_accounts_route: {e}", exc_info=True)
         return jsonify({"error": f"Failed to refresh accounts: {e}"}), 500
 
+# Removed execute route as it references a non-existent module
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5003))  # Default to port 5003 if not set
     app.run(host="0.0.0.0", port=port)
