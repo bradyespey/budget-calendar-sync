@@ -48,7 +48,8 @@ def refresh_accounts():
 
     try:
         # Initialize WebDriver using the new chromedriver path
-        service = Service("/app/.chrome-for-testing/chromedriver-linux64/chromedriver")
+        chromedriver_path = "/app/.chrome-for-testing/chromedriver-linux64/chromedriver"
+        service = Service(chromedriver_path)
         driver = webdriver.Chrome(service=service, options=options)
         logging.info("ChromeDriver initialized successfully.")
 
@@ -56,23 +57,73 @@ def refresh_accounts():
         driver.get("https://app.monarchmoney.com/login")
         logging.info("Navigated to Monarch login page.")
 
+        # Log the page title to verify navigation
+        logging.info(f"Page title: {driver.title}")
+
         # Step 2: Wait for the login form to be visible
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.TAG_NAME, "form"))
-        )
-        logging.info("Login form is visible.")
+        try:
+            WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.TAG_NAME, "form"))
+            )
+            logging.info("Login form is visible.")
+        except Exception as e:
+            logging.error("Login form not found.")
+            logging.debug(driver.page_source)
+            raise
 
         # Step 3: Perform login using direct element access
-        driver.find_element(By.ID, "email").send_keys(email)
-        driver.find_element(By.ID, "password").send_keys(password)
-        driver.find_element(By.ID, "submit-button").click()
+        # Attempt to locate the email input field
+        try:
+            email_input = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "email"))
+            )
+            logging.info("Email input field found by ID.")
+        except:
+            # Try alternative locator by NAME
+            try:
+                email_input = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.NAME, "email"))
+                )
+                logging.info("Email input field found by NAME.")
+            except:
+                logging.error("Unable to locate the email input field.")
+                logging.debug(driver.page_source)
+                raise
+
+        email_input.send_keys(email)
+        logging.info("Entered email.")
+
+        # Attempt to locate the password input field
+        try:
+            password_input = driver.find_element(By.ID, "password")
+            logging.info("Password input field found by ID.")
+        except:
+            # Try alternative locator by NAME
+            try:
+                password_input = driver.find_element(By.NAME, "password")
+                logging.info("Password input field found by NAME.")
+            except:
+                logging.error("Unable to locate the password input field.")
+                logging.debug(driver.page_source)
+                raise
+
+        password_input.send_keys(password)
+        logging.info("Entered password.")
+
+        # Submit the form
+        password_input.send_keys(Keys.RETURN)
         logging.info("Submitted login form.")
 
         # Step 4: Wait for the accounts element to confirm successful login
-        WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, "//a[@href='/accounts']"))
-        )
-        logging.info("Login successful, accounts link is visible.")
+        try:
+            WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.XPATH, "//a[@href='/accounts']"))
+            )
+            logging.info("Login successful, accounts link is visible.")
+        except Exception as e:
+            logging.error("Login may have failed, accounts link not found.")
+            logging.debug(driver.page_source)
+            raise
 
         # Step 5: Navigate to the accounts page
         driver.get("https://app.monarchmoney.com/accounts")
@@ -80,12 +131,17 @@ def refresh_accounts():
         time.sleep(5)  # Wait for the page to load
 
         # Step 6: Wait for the "Refresh all" button to be clickable and click it
-        refresh_button = WebDriverWait(driver, 30).until(
-            EC.element_to_be_clickable((By.XPATH, "//span[text()='Refresh all']"))
-        )
-        refresh_button.click()
-        logging.info("Clicked the 'Refresh all' button.")
-        
+        try:
+            refresh_button = WebDriverWait(driver, 30).until(
+                EC.element_to_be_clickable((By.XPATH, "//span[text()='Refresh all']"))
+            )
+            refresh_button.click()
+            logging.info("Clicked the 'Refresh all' button.")
+        except Exception as e:
+            logging.error("Unable to locate or click the 'Refresh all' button.")
+            logging.debug(driver.page_source)
+            raise
+
     except Exception as e:
         logging.error(f"An error occurred during account refresh: {e}", exc_info=True)
         raise e  # Re-raise exception to be caught in app.py
@@ -93,3 +149,7 @@ def refresh_accounts():
         if driver:
             driver.quit()
             logging.info("ChromeDriver session ended.")
+
+# Allow the script to be run directly
+if __name__ == "__main__":
+    refresh_accounts()
