@@ -1,6 +1,7 @@
-##############################################################################################################################
-# Make sure Chrome is not running and the 'C:\Projects\BudgetCalendar\chrome_profile' directory is deleted before running this script.
-##############################################################################################################################
+# Script may need occasional running to refresh cookies
+# Make sure Chrome is not running when using this script
+# Delete the 'C:\Projects\BudgetCalendar\chrome_profile' directory before running this script
+# Latest ChromeDriver download: https://googlechromelabs.github.io/chrome-for-testing/
 
 import json
 import os

@@ -7,6 +7,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
+# ======= TOGGLE OPTIONS =======
+headless_mode = True  # Set to True for headless mode, False for non-headless (visible Chrome)
+# =============================
+
 def load_credentials(filepath):
     with open(filepath, 'r') as file:
         credentials = json.load(file)
@@ -20,6 +24,13 @@ def refresh_accounts():
     # Setup Selenium ChromeDriver
     service = Service("C:\\WebDriver\\chromedriver.exe")  # Update with the path to your chromedriver if different
     options = webdriver.ChromeOptions()
+
+    # Toggle headless mode based on the variable
+    if headless_mode:
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")  # Often needed for headless Chrome
+        options.add_argument("--no-sandbox")   # Bypass OS security model for headless mode
+    
     options.add_argument("--start-maximized")
     options.add_argument("--disable-logging")
     options.add_argument("--log-level=3")
