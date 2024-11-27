@@ -240,9 +240,19 @@ function projectFutureBalancesAndBills() {
 
 // Combined Main Function to Run Everything
 function executeBudgetProjection() {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Info");
     var startTime = new Date();
-    updateBalanceFromAPI();  // Update balance from API
-    projectFutureBalancesAndBills();  // Project future balances and add transactions
+    
+    // Update balance from API
+    updateBalanceFromAPI();
+    
+    // Record the current date and time in C3
+    var currentDate = new Date();
+    sheet.getRange("C3").setValue(currentDate);
+
+    // Project future GCp,s and add transactions
+    projectFutureBalancesAndBills();
+    
     var endTime = new Date();
     var scriptRunTime = (endTime - startTime) / 1000;
     var minutes = Math.floor(scriptRunTime / 60);

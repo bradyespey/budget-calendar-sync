@@ -1,5 +1,5 @@
 function refreshAccounts() {
-    var url = "https://your-domain.com/budgetcalendar/refresh-accounts/";  // Ensure this URL matches exactly
+    var url = "https://theespeys.com/budgetcalendar/refresh-accounts/";  // Ensure this URL matches exactly
     var response = UrlFetchApp.fetch(url, {method: 'get', muteHttpExceptions: true});
 
     if (response.getResponseCode() === 200) {
