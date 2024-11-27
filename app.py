@@ -1,12 +1,12 @@
 # app.py
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import asyncio
 import logging
-import os
 from scripts.get_chase_balance import get_chase_balance
 from scripts.refresh_accounts import refresh_accounts
 from dotenv import load_dotenv
+import os
 
 # Load environment variables from .env
 load_dotenv()
@@ -19,13 +19,19 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s'
 )
 
+@app.before_request
+def log_request_info():
+    logging.info(f"Received {request.method} request at {request.path}")
+
 @app.route("/budgetcalendar/get-balance/", methods=["GET"])
 def get_balance_route():
     try:
         balance = asyncio.run(get_chase_balance())
         if balance:
+            logging.info(f"Returning balance: {balance}")
             return jsonify({"balance": balance})
         else:
+            logging.error("Failed to retrieve balance.")
             return jsonify({"error": "Failed to retrieve balance"}), 500
     except Exception as e:
         logging.error(f"Exception occurred in get_balance_route: {e}")
@@ -35,6 +41,7 @@ def get_balance_route():
 def refresh_accounts_route():
     try:
         refresh_accounts()
+        logging.info("Accounts refreshed successfully.")
         return jsonify({"status": "Accounts refreshed successfully!"})
     except Exception as e:
         logging.error(f"Exception occurred in refresh_accounts_route: {e}")
