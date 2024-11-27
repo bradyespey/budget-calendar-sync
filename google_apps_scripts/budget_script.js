@@ -1,7 +1,22 @@
-// Calendar IDs and Configuration
-var balanceCalendarId = "balance_calendar_id@group.calendar.google.com";
-var billsCalendarId = "bills_calendar_id@group.calendar.google.com";
-var daysToProjectAndClear = 120;
+// Configurable Variables
+var daysToProjectAndClear = 14; // Adjust as needed
+var environment = "dev"; // Set to "prod" for production or "dev" for development
+
+// Calendar Configuration
+var calendarConfig = {
+    prod: {
+        balanceCalendarId: "prod_balance_calendar_id@group.calendar.google.com",
+        billsCalendarId: "prod_balance_calendar_id@group.calendar.google.com"
+    },
+    dev: {
+        balanceCalendarId: "dev_balance_calendar_id@group.calendar.google.com",
+        billsCalendarId: "dev_balance_calendar_id@group.calendar.google.com"
+    }
+};
+
+// Dynamically Select Calendar IDs Based on Environment
+var balanceCalendarId = calendarConfig[environment].balanceCalendarId;
+var billsCalendarId = calendarConfig[environment].billsCalendarId;
 
 // List of Federal Holidays (2024 and 2025)
 var federalHolidays = [
