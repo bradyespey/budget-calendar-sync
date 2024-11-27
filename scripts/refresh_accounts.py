@@ -1,93 +1,103 @@
+# scripts/refresh_accounts.py
+
+import os
 import time
-import json
+import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 # ======= TOGGLE OPTIONS =======
-headless_mode = True  # Set to True for headless mode, False for non-headless (visible Chrome)
+headless_mode = True  # Set to False if you want to see the browser window during local testing
 # =============================
 
-def load_credentials(filepath):
-    with open(filepath, 'r') as file:
-        credentials = json.load(file)
-    return credentials['email'], credentials['password']
+# Setup Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
 
-# Selenium-based function to refresh Monarch accounts
+def load_credentials():
+    email = os.getenv("MONARCH_EMAIL")
+    password = os.getenv("MONARCH_PASSWORD")
+    if not email or not password:
+        logging.error("Environment variables MONARCH_EMAIL and MONARCH_PASSWORD must be set.")
+        raise ValueError("Environment variables MONARCH_EMAIL and MONARCH_PASSWORD must be set.")
+    return email, password
+
 def refresh_accounts():
-    # Load credentials from the JSON file
-    email, password = load_credentials("C:\\Projects\\BudgetCalendar\\credentials.json")
+    email, password = load_credentials()
 
-    # Setup Selenium ChromeDriver
-    service = Service("C:\\WebDriver\\chromedriver.exe")  # Update with the path to your chromedriver if different
     options = webdriver.ChromeOptions()
-
-    # Toggle headless mode based on the variable
     if headless_mode:
         options.add_argument("--headless")
-        options.add_argument("--disable-gpu")  # Often needed for headless Chrome
-        options.add_argument("--no-sandbox")   # Bypass OS security model for headless mode
-    
-    options.add_argument("--start-maximized")
-    options.add_argument("--disable-logging")
-    options.add_argument("--log-level=3")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")  # Optional: Define window size
 
-    driver = webdriver.Chrome(service=service, options=options)
-    
+    # Determine if running on Heroku
+    is_heroku = os.environ.get("DYNO") is not None
+
     try:
+        if is_heroku:
+            # Heroku uses an ephemeral filesystem; cache webdriver in /tmp
+            driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager(cache_valid_range=1, path="/tmp/.wdm").install()),
+                options=options
+            )
+        else:
+            # Local environment
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+        logging.info("ChromeDriver initialized successfully.")
+
         # Step 1: Navigate to the Monarch login page
         driver.get("https://app.monarchmoney.com/login")
-        
+        logging.info("Navigated to Monarch login page.")
+
         # Step 2: Wait for the login form to be visible
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.TAG_NAME, "form"))
         )
-        print("Login form is visible.")
+        logging.info("Login form is visible.")
 
-        # Step 3: Perform login using tab navigation
-        actions = webdriver.ActionChains(driver)
-
-        # Tab 4 times to reach the email input field
-        for _ in range(4):
-            actions.send_keys(Keys.TAB).perform()
-            time.sleep(0.5)  # Small delay between tabbing to ensure it works smoothly
-
-        # Input email
-        actions.send_keys(email).perform()
-        time.sleep(1)
-
-        # Tab once to reach the password field
-        actions.send_keys(Keys.TAB).perform()
-        time.sleep(0.5)
-
-        # Input password
-        actions.send_keys(password).perform()
-        time.sleep(1)
-
-        # Press Enter to submit the form
-        actions.send_keys(Keys.ENTER).perform()
+        # Step 3: Perform login using direct element access
+        driver.find_element(By.ID, "email").send_keys(email)
+        driver.find_element(By.ID, "password").send_keys(password)
+        driver.find_element(By.ID, "submit-button").click()
+        logging.info("Submitted login form.")
 
         # Step 4: Wait for the accounts element to confirm successful login
-        WebDriverWait(driver, 20).until(
+        WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.XPATH, "//a[@href='/accounts']"))
         )
-        print("Login successful, accounts link is visible.")
+        logging.info("Login successful, accounts link is visible.")
 
         # Step 5: Navigate to the accounts page
         driver.get("https://app.monarchmoney.com/accounts")
-        time.sleep(5)
+        logging.info("Navigated to accounts page.")
+        time.sleep(5)  # Wait for the page to load
 
-        # Step 6: Wait for the "Refresh all" button to be clickable
-        refresh_button = WebDriverWait(driver, 20).until(
+        # Step 6: Wait for the "Refresh all" button to be clickable and click it
+        refresh_button = WebDriverWait(driver, 30).until(
             EC.element_to_be_clickable((By.XPATH, "//span[text()='Refresh all']"))
         )
         refresh_button.click()
-        print("Clicked the 'Refresh all' button.")
-        
+        logging.info("Clicked the 'Refresh all' button.")
+
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
     finally:
         driver.quit()
+        logging.info("ChromeDriver session ended.")
+
+if __name__ == "__main__":
+    refresh_accounts()
