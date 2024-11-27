@@ -16,7 +16,7 @@ var federalHolidays = [
     new Date("2024-10-14"), // Columbus Day
     new Date("2024-11-11"), // Veterans Day
     new Date("2024-11-28"), // Thanksgiving Day
-    new Date("2024-12-25"), // Christmas Day,
+    new Date("2024-12-25"), // Christmas Day
     // 2025
     new Date("2025-01-01"), // New Year's Day
     new Date("2025-01-20"), // Martin Luther King Jr. Day
@@ -31,7 +31,7 @@ var federalHolidays = [
     new Date("2025-12-25")  // Christmas Day
 ];
 
-// Number Formatting Functions
+// Number Formatting Function
 function formatNumber(number) {
     var roundedNumber = Math.round(number);
     var sign = roundedNumber < 0 ? "-" : "";
@@ -39,33 +39,30 @@ function formatNumber(number) {
     return sign + "$" + numberString;
 }
 
-// Parse transaction amount
+// Parse Transaction Amount
 function parseTransactionAmount(amount) {
     var amountString = amount.toString();
     var parsedAmount = parseFloat(amountString.replace(/[^\d.-]/g, ''));
     return isNaN(parsedAmount) ? 0 : parsedAmount;
 }
 
-// Calendar Event Description Function
+// Create Event Description
 function createEventDescription(name, amount) {
     var sign = amount < 0 ? "-" : "+";
     return name + " " + sign + formatNumber(Math.abs(amount));
 }
 
-// Check if a date is a holiday
+// Check if a Date is a Holiday
 function isHoliday(date) {
-    for (var i = 0; i < federalHolidays.length; i++) {
-        if (federalHolidays[i].toDateString() === date.toDateString()) {
-            return true;
-        }
-    }
-    return false;
+    return federalHolidays.some(function(holiday) {
+        return holiday.toDateString() === date.toDateString();
+    });
 }
 
-// Adjust date based on transaction type (paycheck or others)
+// Adjust Transaction Date for Weekends and Holidays
 function adjustTransactionDate(date, isPaycheck) {
     if (isPaycheck) {
-        // Move paycheck transactions to the previous weekday
+        // Move paychecks to the previous weekday
         while (date.getDay() === 0 || date.getDay() === 6 || isHoliday(date)) {
             date.setDate(date.getDate() - 1);
         }
@@ -78,16 +75,16 @@ function adjustTransactionDate(date, isPaycheck) {
     return date;
 }
 
-// Clear Events from Date Function
+// Clear Events from Calendar within Date Range
 function clearEventsFromDate(calendar, startDate, endDate) {
     var events = calendar.getEvents(startDate, endDate);
-    var chunkSize = 50; // Adjust chunk size based on limits
+    var chunkSize = 50; // Adjust based on API limits
     for (var i = 0; i < events.length; i += chunkSize) {
         var chunk = events.slice(i, i + chunkSize);
         chunk.forEach(function(event) {
             event.deleteEvent();
         });
-        Utilities.sleep(100); // Slight delay to avoid hitting API limits
+        Utilities.sleep(100); // Prevent hitting API rate limits
     }
 }
 
@@ -108,7 +105,48 @@ function updateBalanceFromAPI() {
     }
 }
 
-// Main Function for Projecting Balances and Adding Transactions
+// Get Last Day of the Month
+function getLastDayOfMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
+// Strip Time from Date
+function stripTime(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+// Safely Add Months to a Date
+function addMonthsSafely(date, monthsToAdd) {
+    var newDate = new Date(date.getTime());
+    var desiredMonth = newDate.getMonth() + monthsToAdd;
+    newDate.setMonth(desiredMonth);
+
+    // Calculate expected year and month
+    var expectedMonth = (date.getMonth() + monthsToAdd) % 12;
+    var expectedYear = date.getFullYear() + Math.floor((date.getMonth() + monthsToAdd) / 12);
+
+    // If month overflowed, set to last day of target month
+    if (newDate.getMonth() !== expectedMonth) {
+        var lastDay = getLastDayOfMonth(expectedYear, expectedMonth);
+        newDate.setDate(lastDay);
+    }
+
+    return newDate;
+}
+
+// Check if a date is the last day of its month
+function isLastDayOfMonth(date) {
+    var testDate = new Date(date.getTime());
+    testDate.setDate(date.getDate() + 1);
+    return testDate.getDate() === 1;
+}
+
+// Get the last day of a given month and year
+function getLastDayOfMonthDate(year, month) {
+    return new Date(year, month + 1, 0);
+}
+
+// Main Function to Project Balances and Add Transactions
 function projectFutureBalancesAndBills() {
     var sheet = SpreadsheetApp.getActiveSpreadsheet();
     var infoSheet = sheet.getSheetByName("Info");
@@ -127,111 +165,140 @@ function projectFutureBalancesAndBills() {
     }
 
     // Clear future events from calendars before projecting new ones
-    var today = new Date();
-    var endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysToProjectAndClear);
+    var today = stripTime(new Date());
+    var endDate = new Date(today);
+    endDate.setDate(today.getDate() + daysToProjectAndClear);
     clearEventsFromDate(balanceCalendar, today, endDate);
     clearEventsFromDate(billsCalendar, today, endDate);
 
-    var billData = billsSheet.getRange("A2:F" + billsSheet.getLastRow()).getValues();
+    // Fetch Bills Data (columns A to G)
+    var billData = billsSheet.getRange(2, 1, billsSheet.getLastRow() - 1, 7).getValues();
 
     var lowestBalance = originalBalance;
     var highestBalance = originalBalance;
-    var lowestBalanceDate = new Date();
-    var highestBalanceDate = new Date();
+    var lowestBalanceDate = today;
+    var highestBalanceDate = today;
 
     var eventQueue = [];
     var upcomingData = [];
 
+    var balance = originalBalance;
+
     for (var i = 0; i < daysToProjectAndClear; i++) {
-        var date = new Date();
-        date.setDate(today.getDate() + i);
-        var balance = originalBalance;
+        var currentDate = new Date(today);
+        currentDate.setDate(today.getDate() + i);
+        currentDate = stripTime(currentDate); // Ensure no time component
 
         billData.forEach(function (bill) {
-            var billName = bill[0]; // Name column
-            var amount = parseTransactionAmount(bill[2]); // Amount column
-            var repeatsEvery = bill[3]; // Repeats Every column
-            var frequency = bill[4]; // Frequency column
-            var startDate = new Date(bill[5]); // Start Date column
-            var endDate = bill[6] ? new Date(bill[6]) : null; // End Date column
-            var category = bill[1]; // Category column
+            var billName = bill[0];
+            var category = bill[1].toString().trim().toLowerCase();
+            var amount = parseTransactionAmount(bill[2]);
+            var repeatsEvery = parseInt(bill[3], 10) || 1;
+            var frequency = bill[4].toString().trim().toLowerCase();
+            var startDate = stripTime(new Date(bill[5]));
+            var endDateBill = bill[6] ? stripTime(new Date(bill[6])) : null;
 
-            var isPaycheck = category.toLowerCase() === "paycheck";
+            var isPaycheck = category === "paycheck";
+            var transactionOccurs = false;
 
-            // Adjust date for weekends/holidays
-            var transactionDate = adjustTransactionDate(new Date(date), isPaycheck);
+            // Determine if the transaction occurs on the current date based on frequency
+            if (frequency === "one-time" || frequency === "one time") {
+                if (startDate.toDateString() === currentDate.toDateString()) {
+                    transactionOccurs = true;
+                }
+            } else if (frequency === "days") {
+                var daysDiff = Math.floor((currentDate - startDate) / (24 * 60 * 60 * 1000));
+                if (daysDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && daysDiff % repeatsEvery === 0) {
+                    transactionOccurs = true;
+                }
+            } else if (frequency === "weeks") {
+                var weeksDiff = Math.floor((currentDate - startDate) / (7 * 24 * 60 * 60 * 1000));
+                if (weeksDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && weeksDiff % repeatsEvery === 0 && currentDate.getDay() === startDate.getDay()) {
+                    transactionOccurs = true;
+                }
+            } else if (frequency === "months") {
+                var monthsDiff = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + (currentDate.getMonth() - startDate.getMonth());
 
-            if (frequency.toLowerCase() === "one-time" || frequency.toLowerCase() === "one time") {
-                if (startDate.toDateString() === date.toDateString()) {
-                    var eventDescription = createEventDescription(billName, amount);
-                    eventQueue.push({ calendar: billsCalendar, description: eventDescription, date: transactionDate });
-                    upcomingData.push([billName, amount, balance, transactionDate, frequency, category]); // Add to Upcoming data
-                    if (i !== 0) balance += amount; // Exclude today's transactions from balance calculation
-                }
-            } else if (frequency.toLowerCase() === "days") {
-                var daysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
-                if (daysDiff >= 0 && (!endDate || date <= endDate) && daysDiff % repeatsEvery === 0) {
-                    var eventDescription = createEventDescription(billName, amount);
-                    eventQueue.push({ calendar: billsCalendar, description: eventDescription, date: transactionDate });
-                    upcomingData.push([billName, amount, balance, transactionDate, frequency, category]); // Add to Upcoming data
-                    if (i !== 0) balance += amount; // Exclude today's transactions from balance calculation
-                }
-            } else if (frequency.toLowerCase() === "weeks") {
-                var weeksDiff = Math.floor((date - startDate) / (7 * 24 * 60 * 60 * 1000));
-                if (weeksDiff >= 0 && (!endDate || date <= endDate) && weeksDiff % repeatsEvery === 0 && date.getDay() === startDate.getDay()) {
-                    var eventDescription = createEventDescription(billName, amount);
-                    eventQueue.push({ calendar: billsCalendar, description: eventDescription, date: transactionDate });
-                    upcomingData.push([billName, amount, balance, transactionDate, frequency, category]); // Add to Upcoming data
-                    if (i !== 0) balance += amount; // Exclude today's transactions from balance calculation
-                }
-            } else if (frequency.toLowerCase() === "months") {
-                var monthsDiff = (date.getFullYear() - startDate.getFullYear()) * 12 + date.getMonth() - startDate.getMonth();
-                if (monthsDiff >= 0 && (!endDate || date <= endDate) && monthsDiff % repeatsEvery === 0) {
-                    if (startDate.getDate() === date.getDate()) {
-                        var eventDescription = createEventDescription(billName, amount);
-                        eventQueue.push({ calendar: billsCalendar, description: eventDescription, date: transactionDate });
-                        upcomingData.push([billName, amount, balance, transactionDate, frequency, category]); // Add to Upcoming data
-                        if (i !== 0) balance += amount; // Exclude today's transactions from balance calculation
+                if (monthsDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && monthsDiff % repeatsEvery === 0) {
+                    var isStartDateLastDay = isLastDayOfMonth(startDate);
+
+                    var occurrenceDate;
+                    if (isStartDateLastDay) {
+                        // Schedule on the last day of the current month
+                        occurrenceDate = getLastDayOfMonthDate(currentDate.getFullYear(), currentDate.getMonth());
+                    } else {
+                        // Calculate the occurrence date safely
+                        occurrenceDate = addMonthsSafely(startDate, monthsDiff);
+                    }
+
+                    occurrenceDate = stripTime(occurrenceDate); // Remove time component
+
+                    // Adjust for weekends and holidays
+                    var adjustedDate = adjustTransactionDate(new Date(occurrenceDate), isPaycheck);
+
+                    // Check if the adjusted date matches the current loop date
+                    if (adjustedDate.toDateString() === currentDate.toDateString()) {
+                        transactionOccurs = true;
                     }
                 }
-            } else if (frequency.toLowerCase() === "years") {
-                var yearsDiff = date.getFullYear() - startDate.getFullYear();
-                if (yearsDiff >= 0 && (!endDate || date <= endDate) && yearsDiff % repeatsEvery === 0) {
-                    if (startDate.getMonth() === date.getMonth() && startDate.getDate() === date.getDate()) {
-                        var eventDescription = createEventDescription(billName, amount);
-                        eventQueue.push({ calendar: billsCalendar, description: eventDescription, date: transactionDate });
-                        upcomingData.push([billName, amount, balance, transactionDate, frequency, category]); // Add to Upcoming data
-                        if (i !== 0) balance += amount; // Exclude today's transactions from balance calculation
-                    }
+            } else if (frequency === "years") {
+                var yearsDiff = currentDate.getFullYear() - startDate.getFullYear();
+                if (yearsDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && yearsDiff % repeatsEvery === 0 && currentDate.getMonth() === startDate.getMonth() && currentDate.getDate() === startDate.getDate()) {
+                    transactionOccurs = true;
                 }
+            }
+
+            if (transactionOccurs) {
+                // Adjust date for weekends/holidays
+                var transactionDate = adjustTransactionDate(new Date(currentDate), isPaycheck);
+
+                // Validate transactionDate
+                if (isNaN(transactionDate.getTime())) {
+                    Logger.log(`Error: Invalid transaction date for ${billName}. Skipping event.`);
+                    return;
+                }
+
+                var eventDescription = createEventDescription(billName, amount);
+                eventQueue.push({ calendar: billsCalendar, description: eventDescription, date: transactionDate });
+
+                // Log only items being added to the calendar
+                Logger.log(`Scheduling ${billName} on ${transactionDate.toDateString()}`);
+
+                // Update upcoming data and balance
+                upcomingData.push([billName, amount, balance, transactionDate, frequency, category]);
+                if (i !== 0) balance += amount;
             }
         });
 
         // Add the projected balance event
         var balanceDescription = i === 0 ? "Balance: " + formatNumber(balance) : "Projected Balance: " + formatNumber(balance);
-        eventQueue.push({ calendar: balanceCalendar, description: balanceDescription, date: date });
-        originalBalance = balance;
+        eventQueue.push({ calendar: balanceCalendar, description: balanceDescription, date: currentDate });
 
+        // Log the projected balance for each day
+        Logger.log(`Projected balance on ${currentDate.toDateString()}: ${formatNumber(balance)}`);
+
+        // Update lowest and highest balance trackers
         if (balance < lowestBalance) {
             lowestBalance = balance;
-            lowestBalanceDate = new Date(date);
+            lowestBalanceDate = new Date(currentDate);
         }
         if (balance > highestBalance) {
             highestBalance = balance;
-            highestBalanceDate = new Date(date);
+            highestBalanceDate = new Date(currentDate);
         }
     }
 
-    // Batch create events
+    // Batch create events in calendars
     eventQueue.forEach(function (event) {
         event.calendar.createAllDayEvent(event.description, event.date);
     });
 
-    // Update Upcoming sheet
+    // Update Upcoming sheet with scheduled transactions
     if (upcomingData.length > 0) {
         upcomingSheet.getRange(2, 1, upcomingData.length, upcomingData[0].length).setValues(upcomingData);
     }
 
+    // Update balance information in the Info sheet
     infoSheet.getRange("B5").setValue(lowestBalance);
     infoSheet.getRange("C5").setValue(lowestBalanceDate);
     infoSheet.getRange("B6").setValue(highestBalance);
@@ -242,20 +309,23 @@ function projectFutureBalancesAndBills() {
 function executeBudgetProjection() {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Info");
     var startTime = new Date();
-    
-    // Update balance from API
-    updateBalanceFromAPI();
-    
-    // Record the current date and time in C3
-    var currentDate = new Date();
-    sheet.getRange("C3").setValue(currentDate);
 
-    // Project future GCp,s and add transactions
-    projectFutureBalancesAndBills();
-    
-    var endTime = new Date();
-    var scriptRunTime = (endTime - startTime) / 1000;
-    var minutes = Math.floor(scriptRunTime / 60);
-    var seconds = Math.round(scriptRunTime % 60);
-    Logger.log('Script runtime: ' + minutes + ' minutes ' + seconds + ' seconds');
+    try {
+        // Update balance from API
+        updateBalanceFromAPI();
+
+        // Record the current date and time in C3
+        sheet.getRange("C3").setValue(new Date());
+
+        // Project future balances and add transactions
+        projectFutureBalancesAndBills();
+
+        var endTime = new Date();
+        var scriptRunTime = (endTime - startTime) / 1000;
+        var minutes = Math.floor(scriptRunTime / 60);
+        var seconds = Math.round(scriptRunTime % 60);
+        Logger.log('Script runtime: ' + minutes + ' minutes ' + seconds + ' seconds');
+    } catch (error) {
+        Logger.log('Error during execution: ' + error.message);
+    }
 }
