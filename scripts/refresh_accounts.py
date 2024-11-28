@@ -15,7 +15,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 
 # ======= TOGGLE OPTIONS =======
-HEADLESS_MODE = True  # Set to True for headless mode, False for non-headless (visible Chrome)
+HEADLESS_MODE = True  # Set to True for headless mode, False for visible Chrome
 # =============================
 
 # Load environment variables from .env
@@ -34,6 +34,7 @@ def load_credentials():
     """
     # Determine if running on Heroku by checking for the 'DYNO' environment variable
     IS_HEROKU = 'DYNO' in os.environ
+    logging.info(f"IS_HEROKU: {IS_HEROKU}")  # Log environment detection
 
     if IS_HEROKU:
         email = os.getenv("MONARCH_EMAIL")
@@ -43,12 +44,17 @@ def load_credentials():
             raise ValueError("Environment variables MONARCH_EMAIL and MONARCH_PASSWORD must be set.")
     else:
         # Load credentials from a local JSON file
-        filepath = "credentials.json"
+        # Dynamically set the path to credentials.json relative to this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, "../credentials.json")
+        logging.info(f"Looking for credentials at: {filepath}")  # Log the filepath
+
         try:
             with open(filepath, 'r') as file:
                 credentials = json.load(file)
-            email = credentials['email']
-            password = credentials['password']
+            email = credentials.get('email')
+            password = credentials.get('password')
+
             if not email or not password:
                 logging.error("Email or password not found in the credentials.json file.")
                 raise ValueError("Email or password not found in the credentials.json file.")
@@ -80,20 +86,26 @@ def refresh_accounts():
     options.add_argument("--log-level=3")
 
     # Add user-agent to mimic a real browser
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                         "AppleWebKit/537.36 (KHTML, like Gecko) "
+                         "Chrome/115.0.0.0 Safari/537.36")
 
     # Determine if running on Heroku
     IS_HEROKU = 'DYNO' in os.environ
 
     if IS_HEROKU:
         # Set Chrome binary location from Heroku's buildpack
-        chrome_binary = "/app/.chromedriver/bin/chromedriver"
+        # These paths depend on the buildpacks used; adjust if necessary
+        chrome_binary = "/app/.apt/usr/bin/google-chrome"  # Example path; verify with your buildpack
+        chromedriver_path = "/app/.chromedriver/bin/chromedriver"  # Example path; verify with your buildpack
+
         options.binary_location = chrome_binary
-        # Chromedriver path provided by Heroku's buildpack
-        chromedriver_path = "/app/.chromedriver/bin/chromedriver"
+        logging.info(f"Using Chrome binary at: {chrome_binary}")
+        logging.info(f"Using Chromedriver at: {chromedriver_path}")
     else:
         # Use webdriver-manager to handle Chromedriver installation locally
         chromedriver_path = ChromeDriverManager().install()
+        logging.info(f"Using Chromedriver from webdriver-manager at: {chromedriver_path}")
 
     try:
         # Initialize WebDriver
@@ -130,6 +142,7 @@ def refresh_accounts():
 
         # Input email
         actions.send_keys(email).perform()
+        logging.info("Entered email.")
         time.sleep(1)
 
         # Tab once to reach the password field
@@ -138,6 +151,7 @@ def refresh_accounts():
 
         # Input password
         actions.send_keys(password).perform()
+        logging.info("Entered password.")
         time.sleep(1)
 
         # Press Enter to submit the form
