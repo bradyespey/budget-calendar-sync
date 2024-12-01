@@ -75,7 +75,7 @@ def refresh_accounts():
     # Configure Chrome options
     options = webdriver.ChromeOptions()
     if HEADLESS_MODE:
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")  # Updated to use the new headless mode
         options.add_argument("--disable-gpu")  # Often needed for headless Chrome
         options.add_argument("--no-sandbox")   # Bypass OS security model
         options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
@@ -92,10 +92,18 @@ def refresh_accounts():
     IS_HEROKU = 'DYNO' in os.environ
 
     if IS_HEROKU:
-        # Set Chrome binary location from Heroku's buildpack
-        # These paths depend on the buildpacks used; adjust if necessary
-        chrome_binary = "/app/.apt/usr/bin/google-chrome"  # Example path; verify with your buildpack
-        chromedriver_path = "/app/.chromedriver/bin/chromedriver"  # Example path; verify with your buildpack
+        # Retrieve Chrome and Chromedriver paths from environment variables set by the buildpack
+        chrome_binary = "/app/.chrome-for-testing/chrome-linux64/chrome"
+        chromedriver_path = "/app/.chrome-for-testing/chromedriver-linux64/chromedriver"
+
+        # Verify that the executables exist
+        if not os.path.exists(chrome_binary):
+            logging.error(f"Chrome binary not found at: {chrome_binary}")
+            raise FileNotFoundError(f"Chrome binary not found at: {chrome_binary}")
+
+        if not os.path.exists(chromedriver_path):
+            logging.error(f"Chromedriver not found at: {chromedriver_path}")
+            raise FileNotFoundError(f"Chromedriver not found at: {chromedriver_path}")
 
         options.binary_location = chrome_binary
         logging.info(f"Using Chrome binary at: {chrome_binary}")
