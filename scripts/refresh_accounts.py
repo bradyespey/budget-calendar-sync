@@ -1,5 +1,3 @@
-# scripts/refresh_accounts.py
-
 import os
 import time
 import logging
