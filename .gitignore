@@ -162,3 +162,6 @@ chrome_profile/
 
 # Ignore local test credentialls
 credentials.json
+
+# Other files
+other/
