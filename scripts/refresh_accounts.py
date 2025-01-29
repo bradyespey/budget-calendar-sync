@@ -6,6 +6,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager  # Import ChromeDriverManager
 
 # ======= TOGGLE OPTIONS =======
 headless_mode = True  # Set to True for headless mode, False for non-headless (visible Chrome)
@@ -21,8 +22,7 @@ def refresh_accounts():
     # Load credentials from the JSON file
     email, password = load_credentials("C:\\Projects\\BudgetCalendar\\credentials.json")
 
-    # Setup Selenium ChromeDriver
-    service = Service("C:\\WebDriver\\chromedriver.exe")  # Update with the path to your chromedriver if different
+    # Setup Selenium ChromeDriver using webdriver-manager
     options = webdriver.ChromeOptions()
 
     # Toggle headless mode based on the variable
@@ -30,17 +30,18 @@ def refresh_accounts():
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")  # Often needed for headless Chrome
         options.add_argument("--no-sandbox")   # Bypass OS security model for headless mode
-    
+
     options.add_argument("--start-maximized")
     options.add_argument("--disable-logging")
     options.add_argument("--log-level=3")
 
-    driver = webdriver.Chrome(service=service, options=options)
-    
+    # Initialize ChromeDriver using ChromeDriverManager
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
     try:
         # Step 1: Navigate to the Monarch login page
         driver.get("https://app.monarchmoney.com/login")
-        
+
         # Step 2: Wait for the login form to be visible
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.TAG_NAME, "form"))
@@ -86,8 +87,11 @@ def refresh_accounts():
         )
         refresh_button.click()
         print("Clicked the 'Refresh all' button.")
-        
+
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
         driver.quit()
+
+if __name__ == "__main__":
+    refresh_accounts()
