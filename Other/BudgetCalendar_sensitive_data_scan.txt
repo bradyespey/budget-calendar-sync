@@ -1,0 +1,19 @@
+Potential sensitive data found in C:\Projects\GitHub\BudgetCalendar\scripts\get_chase_balance.py
+Line 9: return credentials['email'], credentials['password']
+Line 13: email, password = load_credentials("C:\\Projects\\\\BudgetCalendar\\credentials.json")
+Line 18: def __init__(self, email, password):
+Line 20: self.password = password
+Line 21: self.token = None
+Line 25: login_data = {"username": self.email, "password": self.password}
+Line 30: self.token = result.get('token')
+Line 31: self.headers["Authorization"] = f"Token {self.token}"
+Line 70: client = MonarchMoneyClient(email, password)
+Line 73: if client.token:
+
+Potential sensitive data found in C:\Projects\GitHub\BudgetCalendar\scripts\refresh_accounts.py
+Line 13: return credentials['email'], credentials['password']
+Line 18: email, password = load_credentials("C:\\Projects\\BudgetCalendar\\credentials.json")
+Line 51: # Tab once to reach the password field
+Line 55: # Input password
+Line 56: actions.send_keys(password).perform()
+

@@ -160,5 +160,5 @@ chrome_profile/
 .git_backup
 
 # Other and old files
-other/
+cl/
 old/
