@@ -1,3 +1,5 @@
+// Clear Manual Spreadsheet Values.gs
+
 function clearManualOverride() {
   // Open the active spreadsheet and the "Info" sheet
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Info");

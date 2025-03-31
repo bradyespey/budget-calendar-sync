@@ -1,26 +1,37 @@
-// Create Custom Menu Function
+// Custom Menu Functions.gs
+
 function createCustomMenu() {
-  var ui = SpreadsheetApp.getUi(); // Gets the user interface of the spreadsheet for menu creation
+  const ui = SpreadsheetApp.getUi();
   ui.createMenu('Update Budget')
-    .addItem('Update Full Budget', 'executeBudgetProjection')
-    .addItem('Update Balance from Chase', 'updateBalanceFromChaseEmail')
-    .addItem('Project Future Balances', 'projectFutureBalancesAndBills')
+    .addItem('Main Script', 'runMain')
+    .addItem('Budget Projection', 'executeBudgetProjection')
     .addItem('Clear Calendars', 'clearCalendars')
+    .addItem('Accounts Refresh', 'refreshAccounts')
     .addToUi();
 }
 
-// Function to clear events for the defined period from the calendars
-function clearCalendars() {
-  var balanceCalendar = CalendarApp.getCalendarById(balanceCalendarId);
-  var billsCalendar = CalendarApp.getCalendarById(billsCalendarId);
-  var today = new Date();
-  var endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysToProjectAndClear);
-  clearEventsFromDate(balanceCalendar, today, endDate);
-  clearEventsFromDate(billsCalendar, today, endDate);
-  Logger.log('Calendars cleared for the next ' + daysToProjectAndClear + ' days.');
+function onOpen() {
+  createCustomMenu();
 }
 
-// Run Custom Menu Function on Open
-function onOpen() {
-  createCustomMenu(); // This will create the menu every time the spreadsheet is opened
+// Wrapper Functions for Custom Menu
+
+function runBudgetProjection() {
+  // Configurable Variables
+  const budgetDaysToProject = 30; // Number of days to project events
+  const budgetEnvironment = "prod"; // "prod", "dev", or "both"
+
+  executeBudgetProjection(budgetDaysToProject, budgetEnvironment);
+}
+
+function runClearCalendars() {
+  // Configurable Variables
+  const clearDaysToClear = 30; // Number of days to clear events
+  const clearEnvironment = "prod"; // "prod", "dev", or "both"
+
+  clearCalendars(clearDaysToClear, clearEnvironment);
+}
+
+function runAccountsRefresh() {
+  refreshAccounts();
 }
