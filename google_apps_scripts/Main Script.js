@@ -1,7 +1,7 @@
 // Main Script.gs
 
 // Configurable Variables
-const mainDaysToProjectAndClear = 120; // Number of days to project and clear events
+const mainDaysToProjectAndClear = 100; // Number of days to project and clear events
 const mainEnvironment = "prod";       // "prod", "dev", or "both"
 
 function runMain() {

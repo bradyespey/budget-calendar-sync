@@ -3,6 +3,7 @@
 // Configurable Variables
 const budgetDaysToProject = 14; // Number of days to project events
 const budgetEnvironment = "prod"; // "prod", "dev", or "both"
+const balanceThreshold = 2000;   // Email alert if projected lowest balance falls below this value
 
 function executeBudgetProjection(days = budgetDaysToProject, environment = budgetEnvironment) {
   var startTime = new Date();
@@ -32,9 +33,8 @@ function projectFutureBalancesAndBills(days, env) {
     return;
   }
 
-  // Load Holidays and Update Balance
+  // Load holidays for projection period
   const holidaysSet = loadUsFederalHolidaysForProjection(days);
-  updateBalanceFromAPIForProjection();
 
   // Access Spreadsheets
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -42,12 +42,31 @@ function projectFutureBalancesAndBills(days, env) {
   const billsSheet = ss.getSheetByName("Bills");
   const upcomingSheet = ss.getSheetByName("Upcoming");
 
-  const balAPI = parseFloat(infoSheet.getRange("B3").getValue());
-  const manBal = parseFloat(infoSheet.getRange("B4").getValue());
-  const originalBalance = !isNaN(manBal) ? manBal : balAPI;
-  if (isNaN(originalBalance)) {
-    throw new Error("Original balance is not valid.");
+  // Check for manual override first
+  const manualOverrideValue = infoSheet.getRange("B4").getValue();
+  let manualBalance = NaN;
+  if (manualOverrideValue !== "" && manualOverrideValue !== null) {
+    manualBalance = parseTransactionAmount(manualOverrideValue);
+    // Update cell C4 with the current date in M/D/YYYY format
+    const now = new Date();
+    const formattedDate = Utilities.formatDate(now, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "M/d/yyyy");
+    infoSheet.getRange("C4").setValue(formattedDate);
   }
+  
+  // If no manual override, update API balance
+  if (isNaN(manualBalance)) {
+    updateBalanceFromAPIForProjection();
+  }
+
+  // Read API balance from B3 (it was updated by the API call if no manual override)
+  const balAPI = parseFloat(infoSheet.getRange("B3").getValue());
+  const originalBalance = !isNaN(manualBalance) ? manualBalance : balAPI;
+  
+  // Log only once: if manual override exists, log it here.
+  if (!isNaN(manualBalance)) {
+    Logger.log("Updated manual override balance to: " + formatNumber(manualBalance));
+  }
+  // Otherwise, let updateBalanceFromAPIForProjection() handle the logging.
 
   // Define Date Range
   const today = stripTime(new Date());
@@ -79,7 +98,7 @@ function projectFutureBalancesAndBills(days, env) {
       const isPaycheck = (category === "paycheck");
       let occurs = false;
 
-      // Determine if Bill Occurs Today
+      // Determine if bill occurs on currentDate based on frequency
       if (frequency === "one-time" || frequency === "one time") {
         if (startDate.toDateString() === currentDate.toDateString()) {
           occurs = true;
@@ -91,12 +110,15 @@ function projectFutureBalancesAndBills(days, env) {
         }
       } else if (frequency === "weeks") {
         const weeksDiff = Math.floor((currentDate - startDate) / (7 * 86400000));
-        if (weeksDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && weeksDiff % repeatsEvery === 0 && currentDate.getDay() === startDate.getDay()) {
+        if (weeksDiff >= 0 && (!endDateBill || currentDate <= endDateBill) &&
+            weeksDiff % repeatsEvery === 0 && currentDate.getDay() === startDate.getDay()) {
           occurs = true;
         }
       } else if (frequency === "months") {
-        const monthsDiff = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + (currentDate.getMonth() - startDate.getMonth());
-        if (monthsDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && monthsDiff % repeatsEvery === 0) {
+        const monthsDiff = (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
+                           (currentDate.getMonth() - startDate.getMonth());
+        if (monthsDiff >= 0 && (!endDateBill || currentDate <= endDateBill) &&
+            monthsDiff % repeatsEvery === 0) {
           const isLast = isLastDayOfMonth(startDate);
           let occDate = isLast 
             ? getLastDayOfMonthDate(currentDate.getFullYear(), currentDate.getMonth())
@@ -109,29 +131,33 @@ function projectFutureBalancesAndBills(days, env) {
         }
       } else if (frequency === "years") {
         const yearsDiff = currentDate.getFullYear() - startDate.getFullYear();
-        if (yearsDiff >= 0 && (!endDateBill || currentDate <= endDateBill) && yearsDiff % repeatsEvery === 0 &&
-            currentDate.getMonth() === startDate.getMonth() && currentDate.getDate() === startDate.getDate()) {
+        if (yearsDiff >= 0 && (!endDateBill || currentDate <= endDateBill) &&
+            yearsDiff % repeatsEvery === 0 &&
+            currentDate.getMonth() === startDate.getMonth() &&
+            currentDate.getDate() === startDate.getDate()) {
           occurs = true;
         }
       }
 
-      // Queue Event if Occurs
+      // If the bill occurs, update the balance (for days after today) before recording it
       if (occurs) {
         const txDate = adjustTransactionDate(new Date(currentDate), isPaycheck, holidaysSet);
         if (!isNaN(txDate.getTime())) {
+          if (i !== 0) {
+            balance += amount;
+          }
           const desc = createEventDescription(billName, amount);
           eventQueue.push({ calendar: billsCal, description: desc, date: txDate });
           upcomingData.push([billName, amount, balance, txDate, frequency, category]);
-          if (i !== 0) balance += amount;
         }
       }
     });
 
-    // Queue Balance Event
+    // Queue the daily balance event with the final balance for the day
     const balDesc = i === 0 ? `Balance: ${formatNumber(balance)}` : `Projected Balance: ${formatNumber(balance)}`;
     eventQueue.push({ calendar: balanceCal, description: balDesc, date: currentDate });
 
-    // Track Lowest and Highest Balance
+    // Track the lowest and highest balance for the projection
     if (balance < lowest) {
       lowest = balance;
       lowestDate = new Date(currentDate);
@@ -142,8 +168,8 @@ function projectFutureBalancesAndBills(days, env) {
     }
   }
 
-  // Create Events in Chunks
-  const chunkSize = 100;
+  // Create calendar events in chunks to prevent rate limiting
+  const chunkSize = 50; // Reduced chunk size
   for (let j = 0; j < eventQueue.length; j += chunkSize) {
     const chunk = eventQueue.slice(j, j + chunkSize);
     chunk.forEach(evt => {
@@ -153,24 +179,32 @@ function projectFutureBalancesAndBills(days, env) {
         Logger.log(`Error creating event: ${e}`);
       }
     });
-    Utilities.sleep(20); // Prevent rate limiting
+    Utilities.sleep(200); // Increased delay between chunks
   }
 
-  // Update Upcoming Sheet
+  // Update Upcoming Sheet with rounded balance values
   if (upcomingData.length > 0) {
     upcomingSheet.getRange(2, 1, upcomingData.length, upcomingData[0].length).setValues(upcomingData);
   }
 
-  // Update Balance Information
-  infoSheet.getRange("B5").setValue(lowest);
+  // Write the lowest and highest balance values (rounded) and their dates to the Info sheet
+  infoSheet.getRange("B5").setValue(Math.round(lowest));
   infoSheet.getRange("C5").setValue(lowestDate);
-  infoSheet.getRange("B6").setValue(highest);
+  infoSheet.getRange("B6").setValue(Math.round(highest));
   infoSheet.getRange("C6").setValue(highestDate);
+
+  // Send email alert if projected lowest balance is below threshold
+  if (lowest < balanceThreshold) {
+    const recipient = "bradyjennytx@gmail.com";
+    const subject = "Low Balance Alert: Budget Projection";
+    const body = `Your projected lowest balance is ${formatNumber(lowest)} on ${lowestDate.toLocaleDateString()}. Please review your upcoming bills and expenses.`;
+    GmailApp.sendEmail(recipient, subject, body);
+    Logger.log("Low balance alert email sent to: " + recipient);
+  }
 
   Logger.log(`Completed budget projection for ${days} days.`);
 }
 
-// Helper Functions
 function getCalendarIdsProjection(props, env) {
   const envLower = env.toLowerCase();
   if (envLower === "prod") {
@@ -260,12 +294,12 @@ function updateBalanceFromAPIForProjection() {
       sheet.getRange("B3").setValue(bal);
       // Also update the date in cell C3 with the current date:
       sheet.getRange("C3").setValue(new Date());
-      Logger.log(`Updated balance to: ${formatNumber(bal)}`);
+      Logger.log("Updated API balance to: " + formatNumber(bal));
     } else {
       throw new Error(`Failed to retrieve balance: ${response.getContentText()}`);
     }
   } catch (err) {
-    Logger.log(`Error in updateBalanceFromAPIForProjection: ${err.message}`);
+    Logger.log("Error in updateBalanceFromAPIForProjection: " + err.message);
   }
 }
 

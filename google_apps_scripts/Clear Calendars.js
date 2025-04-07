@@ -2,7 +2,7 @@
 
 // Configurable Variables
 const clearDaysToClear = 120; // Number of days to clear events
-const clearEnvironment = "dev"; // "prod", "dev", or "both"
+const clearEnvironment = "prod"; // "prod", "dev", or "both"
 
 function clearCalendars(days = clearDaysToClear, environment = clearEnvironment) {
   var startTime = new Date();
