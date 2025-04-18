@@ -5,10 +5,8 @@ import asyncio
 import json
 import os
 
-# Specify project path folders and set variables
-SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
-TOKEN_PATH = os.path.join(PROJECT_ROOT, "monarch_token.json")
+# Path to your saved token JSON file
+TOKEN_PATH = "C:\\Repos\\budget-calendar-sync\\monarch_token.json"
 
 def load_token(filepath):
     if not os.path.exists(filepath):

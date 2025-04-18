@@ -9,12 +9,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-# Specify project path folders and set variables
-USE_HEADLESS = True
-SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
-COOKIES_FILE = os.path.join(PROJECT_ROOT, "monarch_cookies.json")
-PROFILE_PATH = os.path.join(PROJECT_ROOT, "chrome_profile")
+# Configuration
+USE_HEADLESS = True  # Set True for headless mode
+COOKIES_FILE = "C:\\Repos\\budget-calendar-sync\\monarch_cookies.json"
+PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
 LOGIN_URL = "https://app.monarchmoney.com/login"
 DASHBOARD_URL = "https://app.monarchmoney.com/dashboard"
 ACCOUNTS_URL = "https://app.monarchmoney.com/accounts"
@@ -61,7 +59,7 @@ def refresh_accounts():
     options.add_argument("--disable-logging")
     options.add_argument("--log-level=3")
 
-    service = Service("C:\\WebDriver\\chromedriver.exe")
+    service = Service("C:\\Drivers\\WebDriver\\chromedriver.exe")
     try:
         driver = webdriver.Chrome(service=service, options=options)
     except Exception as e:

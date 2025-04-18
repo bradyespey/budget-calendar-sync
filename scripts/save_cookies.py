@@ -7,12 +7,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 
-# Specify project path folders and set variables
-USE_HEADLESS = True
-SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
-COOKIE_PATH = os.path.join(PROJECT_ROOT, "monarch_cookies.json")
-PROFILE_PATH= os.path.join(PROJECT_ROOT, "chrome_profile")
+# Path where cookies will be saved
+COOKIE_PATH = "C:\\Repos\\budget-calendar-sync\\monarch_cookies.json"
+# Persistent Chrome profile folder (this stores cookies, localStorage, etc.)
+PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
+# URL for Monarch login
 LOGIN_URL = "https://app.monarchmoney.com/login"
 
 # Set up ChromeDriver options (always non-headless for manual login)
@@ -22,7 +21,7 @@ options.add_argument("--start-maximized")
 options.add_argument("--disable-logging")
 options.add_argument("--log-level=3")
 
-service = Service("C:\\Drivers\\chromedriver-win64\\chromedriver.exe")
+service = Service("C:\\Drivers\\WebDriver\\chromedriver.exe")
 driver = webdriver.Chrome(service=service, options=options)
 
 try:
@@ -46,4 +45,3 @@ except Exception as e:
     print(f"An error occurred: {type(e).__name__}, {e}")
 finally:
     driver.quit()
-    

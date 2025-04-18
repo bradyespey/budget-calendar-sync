@@ -6,13 +6,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 
-# Specify project path folders and set variables
-SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
-TOKEN_PATH       = os.path.join(PROJECT_ROOT, "monarch_token.json")
-PROFILE_PATH     = os.path.join(PROJECT_ROOT, "chrome_profile")
+# Configuration paths
+TOKEN_PATH = "C:\\Repos\\budget-calendar-sync\\monarch_token.json"
+PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
 LOGIN_URL = "https://app.monarchmoney.com/login"
-CHROMEDRIVER_PATH= "C:\\Drivers\\chromedriver-win64\\chromedriver.exe"
+CHROMEDRIVER_PATH = "C:\\Drivers\\chromedriver-win64\\chromedriver.exe"
 
 options = webdriver.ChromeOptions()
 options.add_argument(f"user-data-dir={PROFILE_PATH}")
