@@ -1,0 +1,14 @@
+# Folders
+old/
+other/
+venv/
+.cloudflared/
+__pycache__/
+.vscode/
+logs/
+
+# Files
+.DS_Store
+.env
+monarch_cookies.json
+monarch_token.json
