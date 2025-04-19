@@ -8,9 +8,9 @@ from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 
 # Path where cookies will be saved
-COOKIE_PATH = "C:\\Repos\\budget-calendar-sync\\monarch_cookies.json"
+COOKIE_PATH = "C:\\Projects\\Budget\\monarch_cookies.json"
 # Persistent Chrome profile folder (this stores cookies, localStorage, etc.)
-PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
+PROFILE_PATH = "C:\\Projects\\Budget\\chrome_profile"
 # URL for Monarch login
 LOGIN_URL = "https://app.monarchmoney.com/login"
 

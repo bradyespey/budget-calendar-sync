@@ -11,8 +11,8 @@ from selenium.webdriver.common.by import By
 
 # Configuration
 USE_HEADLESS = True  # Set True for headless mode
-COOKIES_FILE = "C:\\Repos\\budget-calendar-sync\\monarch_cookies.json"
-PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
+COOKIES_FILE = "C:\\Projects\\Budget\\monarch_cookies.json"
+PROFILE_PATH = "C:\\Projects\\Budget\\chrome_profile"
 LOGIN_URL = "https://app.monarchmoney.com/login"
 DASHBOARD_URL = "https://app.monarchmoney.com/dashboard"
 ACCOUNTS_URL = "https://app.monarchmoney.com/accounts"

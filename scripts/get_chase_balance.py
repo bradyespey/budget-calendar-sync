@@ -6,7 +6,7 @@ import json
 import os
 
 # Path to your saved token JSON file
-TOKEN_PATH = "C:\\Repos\\budget-calendar-sync\\monarch_token.json"
+TOKEN_PATH = "C:\\Projects\\Budget\\monarch_token.json"
 
 def load_token(filepath):
     if not os.path.exists(filepath):

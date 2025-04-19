@@ -12,9 +12,9 @@ from selenium.webdriver.common.by import By
 
 # Always run in non-headless mode for testing.
 USE_HEADLESS = True
-COOKIES_FILE = "C:\\Repos\\budget-calendar-sync\\monarch_cookies.json"
+COOKIES_FILE = "C:\\Projects\\Budget\\monarch_cookies.json"
 # Persistent profile folder for Chrome (adjust the path as needed)
-PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
+PROFILE_PATH = "C:\\Projects\\Budget\\chrome_profile"
 DASHBOARD_URL = "https://app.monarchmoney.com/dashboard"
 TRANSACTIONS_URL = "https://app.monarchmoney.com/transactions?needsReview=true&needsReviewUnassigned=true"
 

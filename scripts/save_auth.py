@@ -7,8 +7,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import WebDriverException
 
 # Configuration paths
-TOKEN_PATH = "C:\\Repos\\budget-calendar-sync\\monarch_token.json"
-PROFILE_PATH = "C:\\Repos\\budget-calendar-sync\\chrome_profile"
+TOKEN_PATH = "C:\\Projects\\Budget\\monarch_token.json"
+PROFILE_PATH = "C:\\Projects\\Budget\\chrome_profile"
 LOGIN_URL = "https://app.monarchmoney.com/login"
 CHROMEDRIVER_PATH = "C:\\Drivers\\chromedriver-win64\\chromedriver.exe"
 
