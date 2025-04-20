@@ -61,7 +61,7 @@ def get_review_count():
     options.add_argument("--disable-logging")
     options.add_argument("--log-level=3")
 
-    service = Service("C:\\Drivers\\WebDriver\\chromedriver.exe")
+    service = Service("C:\\Drivers\\Chrome\\chromedriver.exe")
     try:
         driver = webdriver.Chrome(service=service, options=options)
     except Exception as e:

@@ -21,7 +21,7 @@ options.add_argument("--start-maximized")
 options.add_argument("--disable-logging")
 options.add_argument("--log-level=3")
 
-service = Service("C:\\Drivers\\WebDriver\\chromedriver.exe")
+service = Service("C:\\Drivers\\Chrome\\chromedriver.exe")
 driver = webdriver.Chrome(service=service, options=options)
 
 try:
