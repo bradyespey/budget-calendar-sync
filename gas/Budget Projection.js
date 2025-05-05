@@ -1,4 +1,5 @@
-// Budget Projection.gs
+//gas/Budget Projection.js
+
 
 // Configurable Variables
 const budgetDaysToProject = 14; // Number of days to project events

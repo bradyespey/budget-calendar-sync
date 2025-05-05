@@ -1,4 +1,5 @@
-// Main Script.gs
+//gas/Main Script.js
+
 
 // Configurable Variables
 const mainDaysToProjectAndClear = 100; // Number of days to project and clear events

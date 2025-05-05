@@ -1,4 +1,5 @@
-// Clear Calendars.gs
+//gas/Clear Calendars.js
+
 
 // Configurable Variables
 const clearDaysToClear = 120; // Number of days to clear events

@@ -1,4 +1,5 @@
-// Clear Manual Spreadsheet Values.gs
+//gas/Clear Manual Spreadsheet Values.js
+
 
 function clearManualOverride() {
   // Open the active spreadsheet and the "Info" sheet

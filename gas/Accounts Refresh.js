@@ -1,4 +1,5 @@
-// Accounts Refresh.gs
+//gas/Accounts Refresh.js
+
 
 function refreshAccounts() {
   var startTime = new Date();

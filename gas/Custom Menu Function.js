@@ -1,4 +1,5 @@
-// Custom Menu Functions.gs
+//gas/Custom Menu Function.js
+
 
 function createCustomMenu() {
   const ui = SpreadsheetApp.getUi();
