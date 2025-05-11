@@ -9,12 +9,12 @@ from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# ── Your job scripts ───────────────────────────────────────────────────────
-from scripts.refresh_accounts import refresh_accounts
+# ── Job scripts ──────────────────────────────────────────────────────────
+from scripts.refresh_accounts import refresh_accounts, USE_HEADLESS
 from scripts.get_chase_balance import get_chase_balance_async as _chase
 from scripts.check_review_count import get_review_count as _rcount
 
-# ── Env + Basic-Auth config ─────────────────────────────────────────────────
+# ── Env + Basic-Auth ──────────────────────────────────────────────────────
 load_dotenv()
 API_AUTH = os.getenv("API_AUTH", "")
 if ":" not in API_AUTH:
@@ -24,7 +24,7 @@ USER, PASS = API_AUTH.split(":", 1)
 def _check(u: str, p: str) -> bool:
     return u == USER and p == PASS
 
-# ── Flask + CORS setup ─────────────────────────────────────────────────────
+# ── Flask + CORS setup ────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(
     app,
@@ -37,7 +37,7 @@ CORS(
 def requires_auth(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
-        # let preflight through
+        # allow preflight
         if request.method == "OPTIONS":
             return make_response(("", 204))
         auth = request.authorization
@@ -49,22 +49,23 @@ def requires_auth(fn):
         return fn(*args, **kwargs)
     return wrapped
 
-# ── /refresh_accounts ──────────────────────────────────────────────────────
+# ── /refresh_accounts ─────────────────────────────────────────────────────
 @app.route("/refresh_accounts", methods=["GET", "POST", "OPTIONS"])
 @requires_auth
 def refresh_accounts_endpoint():
     """
-    ?sync=1   → run synchronously (blocks until done)
-    otherwise → spawn background thread, return 202 immediately
+    ?sync=1            → force synchronous, blocking run (for debugging)
+    !USE_HEADLESS (GUI) → synchronous so you can watch the browser
+    otherwise         → background thread, immediate 202
     """
-    run_sync = request.args.get("sync") == "1"
+    run_sync = (request.args.get("sync") == "1") or (not USE_HEADLESS)
 
     def _worker():
-        ok = refresh_accounts()   # uses script’s own USE_HEADLESS toggle
+        ok = refresh_accounts()  # honors USE_HEADLESS
         print(f"refresh_accounts() finished: {ok}")
 
     if run_sync:
-        print("🔧 running refresh_accounts() synchronously for debugging")
+        print("🔧 running refresh_accounts() synchronously")
         _worker()
         return jsonify({"status": "Sync run complete"}), 200
     else:
@@ -72,7 +73,7 @@ def refresh_accounts_endpoint():
         Thread(target=_worker, daemon=True).start()
         return jsonify({"status": "Refresh job started"}), 202
 
-# ── /chase_balance ─────────────────────────────────────────────────────────
+# ── /chase_balance ────────────────────────────────────────────────────────
 @app.route("/chase_balance", methods=["GET", "OPTIONS"])
 @requires_auth
 def chase_balance_endpoint():
@@ -82,7 +83,7 @@ def chase_balance_endpoint():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── /transactions_review ───────────────────────────────────────────────────
+# ── /transactions_review ──────────────────────────────────────────────────
 @app.route("/transactions_review", methods=["GET", "OPTIONS"])
 @requires_auth
 def transactions_review_endpoint():
@@ -92,7 +93,7 @@ def transactions_review_endpoint():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── Entry point ────────────────────────────────────────────────────────────
+# ── Entry point ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"[Flask] listening on :5000  (basic-auth user = {USER})")
     app.run(host="0.0.0.0", port=5000, debug=False)
