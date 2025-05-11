@@ -1,27 +1,30 @@
+# app.py
+
 import os
 import sys
 from threading import Thread
 from functools import wraps
+
 from flask import Flask, jsonify, request, Response, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# import your Selenium job
+# ── Your job scripts ───────────────────────────────────────────────────────
 from scripts.refresh_accounts import refresh_accounts
 from scripts.get_chase_balance import get_chase_balance_async as _chase
 from scripts.check_review_count import get_review_count as _rcount
 
+# ── Env + Basic-Auth config ─────────────────────────────────────────────────
 load_dotenv()
-
-# ── Basic-Auth config ───────────────────────────────────────────────────────
 API_AUTH = os.getenv("API_AUTH", "")
 if ":" not in API_AUTH:
     raise RuntimeError("API_AUTH must be set in the environment as 'user:pass'")
 USER, PASS = API_AUTH.split(":", 1)
 
-def _check(u, p): return u == USER and p == PASS
+def _check(u: str, p: str) -> bool:
+    return u == USER and p == PASS
 
-# ── Flask app + CORS ────────────────────────────────────────────────────────
+# ── Flask + CORS setup ─────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(
     app,
@@ -34,6 +37,7 @@ CORS(
 def requires_auth(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
+        # let preflight through
         if request.method == "OPTIONS":
             return make_response(("", 204))
         auth = request.authorization
@@ -50,13 +54,13 @@ def requires_auth(fn):
 @requires_auth
 def refresh_accounts_endpoint():
     """
-    ?sync=1   → run synchronously (foreground, blocking)
-    otherwise → run in background thread, return 202 immediately
+    ?sync=1   → run synchronously (blocks until done)
+    otherwise → spawn background thread, return 202 immediately
     """
     run_sync = request.args.get("sync") == "1"
 
     def _worker():
-        ok = refresh_accounts()   # uses the script’s own USE_HEADLESS
+        ok = refresh_accounts()   # uses script’s own USE_HEADLESS toggle
         print(f"refresh_accounts() finished: {ok}")
 
     if run_sync:
@@ -88,6 +92,7 @@ def transactions_review_endpoint():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ── Entry point ────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"[Flask] listening on :5000  (basic-auth user = {USER})")
     app.run(host="0.0.0.0", port=5000, debug=False)
